@@ -1,0 +1,18 @@
+[
+  {
+    "id": "usr-sarah-101",
+    "email": "sarah.product@company.com",
+    "name": "Sarah Jenkins",
+    "passwordHash": "864fa3aa2472f839845b6c05f5fa1c302f68f6169b119f870243de05a84c7806d5ba032e3f0e83add14dbbceee097fbbe32122e4baaf28c495f5e7317cc62ae7",
+    "salt": "1d2f9f0eca9ea05f80ea20ef7ca36979",
+    "createdAt": "2026-10-05T15:23:11.374Z"
+  },
+  {
+    "id": "usr-alex-102",
+    "email": "alex.tech@company.com",
+    "name": "Alex Chen",
+    "passwordHash": "d21b2f12d10c01ffb83166d4f4c0d93aaa8db294ef7969ef2f5573a1c1cda345d110fdf2466496dce1ad1870aca4a0fbe12b569bc5183eb928b2877ef6566450",
+    "salt": "e3d9aff53a83f89ef48ea59817960cf0",
+    "createdAt": "2026-10-05T15:23:11.375Z"
+  }
+]

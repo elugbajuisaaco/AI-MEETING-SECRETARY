@@ -1,0 +1,6 @@
+{
+  "name": "AI Meeting Secretary",
+  "description": "Record live audio, transcribe meetings with Gemini AI, edit transcripts, extract key action items, and export to Word (.docx) or PDF.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

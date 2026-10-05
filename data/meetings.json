@@ -1,0 +1,117 @@
+[
+  {
+    "id": "persisted-meeting-1",
+    "userId": "usr-sarah-101",
+    "title": "Q4 Product Roadmap & AI Secretary Launch",
+    "date": "2026-10-03T15:23:13.559Z",
+    "durationSeconds": 1420,
+    "category": "Planning",
+    "summary": "Reviewed final deliverables for the AI Meeting Secretary release. Confirmed live audio streaming stability, export to Word/PDF formats, and guest mode security safeguards. Team agreed on rolling out beta to 250 enterprise design partners next Tuesday.",
+    "topics": [
+      "Live browser audio capture & noise cancellation",
+      "Word (.docx) and PDF export formatting validation",
+      "Guest session timeout & zero-retention compliance",
+      "Design partner rollout schedule & feedback telemetry"
+    ],
+    "decisions": [
+      "Confirmed public launch target for October 15th",
+      "Approved guest mode ephemeral session model without data persistence",
+      "Selected Gemini 3.8 Flash as the primary multimodal meeting intelligence engine"
+    ],
+    "actionItems": [
+      {
+        "id": "act-1",
+        "task": "Conduct load testing on concurrent 60MB audio uploads",
+        "assignee": "Alex Chen",
+        "dueDate": "Friday 5 PM",
+        "completed": true
+      },
+      {
+        "id": "act-2",
+        "task": "Draft executive onboarding guide for pilot partners",
+        "assignee": "Sarah Jenkins",
+        "dueDate": "Next Monday",
+        "completed": false
+      },
+      {
+        "id": "act-3",
+        "task": "Verify GDPR/CCPA data wiping protocols for deleted transcripts",
+        "assignee": "Security Team",
+        "dueDate": "October 12",
+        "completed": false
+      }
+    ],
+    "transcriptSegments": [
+      {
+        "id": "seg-1",
+        "speaker": "Sarah Jenkins",
+        "timestamp": "00:00",
+        "text": "Good morning everyone. Let's kick off our Q4 roadmap review for AI Meeting Secretary."
+      },
+      {
+        "id": "seg-2",
+        "speaker": "Alex Chen",
+        "timestamp": "00:15",
+        "text": "Audio capture latency is under 180ms now using Web Audio API and Gemini multimodal transcription."
+      },
+      {
+        "id": "seg-3",
+        "speaker": "Sarah Jenkins",
+        "timestamp": "01:05",
+        "text": "Terrific. What about the Word and PDF export rendering? Have we verified the styles?"
+      },
+      {
+        "id": "seg-4",
+        "speaker": "Alex Chen",
+        "timestamp": "01:25",
+        "text": "Yes, both .docx and .pdf include speaker tags, timestamps, action items tables, and summaries."
+      }
+    ],
+    "rawTranscript": "[00:00] Sarah Jenkins: Good morning everyone. Let's kick off our Q4 roadmap review for AI Meeting Secretary. [00:15] Alex Chen: Audio capture latency is under 180ms now using Web Audio API and Gemini multimodal transcription. [01:05] Sarah Jenkins: Terrific. What about the Word and PDF export rendering? [01:25] Alex Chen: Yes, both .docx and .pdf include speaker tags, timestamps, action items tables, and summaries.",
+    "createdAt": "2026-10-03T15:23:13.559Z",
+    "updatedAt": "2026-10-03T15:23:13.559Z"
+  },
+  {
+    "id": "persisted-meeting-2",
+    "userId": "usr-sarah-101",
+    "title": "Weekly Leadership Standup & Cloud Scaling",
+    "date": "2026-09-30T15:23:13.559Z",
+    "durationSeconds": 840,
+    "category": "Standup",
+    "summary": "Quick alignment on infrastructure budget and regional failover. Cloud Run instances scaled seamlessly across Europe and North America during the beta peak.",
+    "topics": [
+      "Cloud compute scaling metrics",
+      "Database indexing for transcript search",
+      "Team PTO schedule"
+    ],
+    "decisions": [
+      "Approved cloud scaling budget increase by 15%"
+    ],
+    "actionItems": [
+      {
+        "id": "act-4",
+        "task": "Optimize PostgreSQL full-text search query index",
+        "assignee": "Alex Chen",
+        "dueDate": "Wednesday",
+        "completed": true
+      }
+    ],
+    "transcriptSegments": [
+      {
+        "id": "seg-5",
+        "speaker": "Sarah Jenkins",
+        "timestamp": "00:00",
+        "text": "Quick 15-minute sync on weekly priorities and server health."
+      },
+      {
+        "id": "seg-6",
+        "speaker": "Alex Chen",
+        "timestamp": "00:30",
+        "text": "All endpoints are green with 99.98% uptime over the past 30 days."
+      }
+    ],
+    "rawTranscript": "[00:00] Sarah Jenkins: Quick 15-minute sync on weekly priorities. [00:30] Alex Chen: All endpoints are green with 99.98% uptime.",
+    "createdAt": "2026-09-30T15:23:13.559Z",
+    "updatedAt": "2026-09-30T15:23:13.559Z"
+  }
+]
