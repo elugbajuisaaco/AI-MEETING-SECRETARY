@@ -14,5 +14,13 @@
     "passwordHash": "d21b2f12d10c01ffb83166d4f4c0d93aaa8db294ef7969ef2f5573a1c1cda345d110fdf2466496dce1ad1870aca4a0fbe12b569bc5183eb928b2877ef6566450",
     "salt": "e3d9aff53a83f89ef48ea59817960cf0",
     "createdAt": "2026-10-05T15:23:11.375Z"
+  },
+  {
+    "id": "usr-1791290011055-655ad48e",
+    "email": "lantern841@gmail.com",
+    "name": "oluwaseun elugbaju",
+    "passwordHash": "c0e260d472619204ea8a6325e1bddad725f9e731f29face6e042cde6d1ee11c8e78a51f0d34dbdf747c7af8402cf594c828f5172af40b996412530405b00bd8c",
+    "salt": "d4a82b15be568d978a4cb06cd424ac8e",
+    "createdAt": "2026-10-06T12:33:31.055Z"
   }
 ]

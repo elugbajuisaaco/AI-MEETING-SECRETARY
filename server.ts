@@ -4,8 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
-import { GoogleGenAI, Type } from '@google/genai';
-
+import { analyzeAudio, refineText, anyProviderConfigured, providerStatus } from './providers';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,16 +16,6 @@ const port = 3000;
 // Body parser limits for large audio payloads
 app.use(express.json({ limit: '60mb' }));
 app.use(express.urlencoded({ extended: true, limit: '60mb' }));
-
-// Initialize Google Gemini AI SDK on the server-side
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    },
-  },
-});
 
 // -------------------------------------------------------------
 // Database & Storage Layer (File-backed JSON with seed data)
@@ -391,10 +380,6 @@ app.get('/api/auth/me', authenticateToken, (req: Request, res: Response) => {
     user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt },
   });
 });
-
-// -------------------------------------------------------------
-// AI Audio Transcription & Intelligence Pipeline
-// -------------------------------------------------------------
 app.post('/api/transcribe', async (req: Request, res: Response) => {
   try {
     const { audioBase64, mimeType, meetingContext, category, language } = req.body;
@@ -404,20 +389,12 @@ app.post('/api/transcribe', async (req: Request, res: Response) => {
       return;
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!anyProviderConfigured()) {
       res.status(500).json({
-        error: 'GEMINI_API_KEY is not configured on the server. Please configure it in Settings > Secrets.',
+        error: 'No AI provider is configured. Add GEMINI_API_KEY or GROQ_API_KEY to your .env file.',
       });
       return;
     }
-
-    // Prepare audio part for multimodal analysis
-    const audioPart = {
-      inlineData: {
-        mimeType: mimeType || 'audio/webm',
-        data: audioBase64,
-      },
-    };
 
     const promptText = `
 You are the AI Meeting Secretary, an elite corporate executive assistant, verbatim transcriptionist, and strategy analyst.
@@ -460,67 +437,16 @@ You must return valid JSON matching this schema:
 }
 `;
 
-    const textPart = { text: promptText };
-
-    // Request structured JSON using Gemini 3.8 Flash
-    const geminiResponse = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: { parts: [audioPart, textPart] },
-      config: {
-        systemInstruction:
-          'You are AI Meeting Secretary. You listen to meeting audio and produce structured, professional transcription with speaker segmentation, executive summaries, decisions, and action items in JSON format.',
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            summary: { type: Type.STRING },
-            topics: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            decisions: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            actionItems: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  task: { type: Type.STRING },
-                  assignee: { type: Type.STRING },
-                  dueDate: { type: Type.STRING },
-                },
-                required: ['task'],
-              },
-            },
-            segments: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  speaker: { type: Type.STRING },
-                  timestamp: { type: Type.STRING },
-                  text: { type: Type.STRING },
-                },
-                required: ['speaker', 'text'],
-              },
-            },
-            rawTranscript: { type: Type.STRING },
-          },
-          required: ['title', 'summary', 'topics', 'decisions', 'actionItems', 'segments', 'rawTranscript'],
-        },
-      },
+    const { provider, result } = await analyzeAudio({
+      audioBase64,
+      mimeType: mimeType || 'audio/webm',
+      prompt: promptText,
+      systemInstruction:
+        'You are AI Meeting Secretary. You listen to meeting audio and produce structured, professional transcription with speaker segmentation, executive summaries, decisions, and action items in JSON format.',
     });
 
-    const responseText = geminiResponse.text;
-    if (!responseText) {
-      throw new Error('Empty response received from Gemini AI model');
-    }
-
-    const parsedData = JSON.parse(responseText.trim());
-    res.json(parsedData);
+    res.setHeader('X-AI-Provider', provider);
+    res.json(result);
   } catch (err: any) {
     console.error('Transcription API error:', err);
     res.status(500).json({
@@ -537,6 +463,13 @@ app.post('/api/ai/refine', async (req: Request, res: Response) => {
     const { meeting, instruction } = req.body;
     if (!meeting || !instruction) {
       res.status(400).json({ error: 'Meeting and instruction are required' });
+      return;
+    }
+
+    if (!anyProviderConfigured()) {
+      res.status(500).json({
+        error: 'No AI provider is configured. Add GEMINI_API_KEY or GROQ_API_KEY to your .env file.',
+      });
       return;
     }
 
@@ -561,22 +494,14 @@ Return a JSON object:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
-
-    const result = JSON.parse(response.text || '{}');
+    const { provider, result } = await refineText(prompt);
+    res.setHeader('X-AI-Provider', provider);
     res.json(result);
   } catch (err: any) {
     console.error('AI Refine error:', err);
     res.status(500).json({ error: err.message || 'Failed to refine meeting with AI' });
   }
 });
-
 // -------------------------------------------------------------
 // Meetings CRUD Endpoints
 // -------------------------------------------------------------
@@ -712,7 +637,7 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    geminiApiKeyConfigured: !!process.env.GEMINI_API_KEY,
+    ...providerStatus(),
     environment: process.env.NODE_ENV || 'development',
   });
 });

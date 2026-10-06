@@ -1,6 +1,6 @@
 # AI Meeting Secretary
 
-An intelligent, full-stack web application that records live audio directly from the browser, transcribes it using Google's multimodal **Gemini API** (`@google/genai`), generates speaker-labeled dialogue, executive summaries, key agenda topics, and concrete action items, and allows editing and one-click export to **Microsoft Word (.docx)** and **PDF**.
+An intelligent, full-stack web application that records live audio directly from the browser, transcribes it using Google's multimodal **Gemini API** (`@google/genai`) with **Groq** as a fallback, generates speaker-labeled dialogue, executive summaries, key agenda topics, and concrete action items, and allows editing and one-click export to **Microsoft Word (.docx)** and **PDF**.
 
 ---
 
@@ -9,7 +9,7 @@ An intelligent, full-stack web application that records live audio directly from
 - **Frontend:** React 19, TypeScript, Tailwind CSS, Lucide Icons, Motion.
 - **Audio Capture & Analysis:** HTML5 `MediaRecorder` API + Web Audio API (`AnalyserNode`) for live waveform visualization.
 - **Backend:** Node.js, Express, `tsx` TypeScript runtime, with Vite middleware integration in development and static asset serving in production.
-- **AI Engine:** Google Gemini API (`@google/genai`) using multimodal `gemini-3.8-flash` for audio transcription, speaker diarization, executive summaries, and action item extraction.
+- **AI Engine:** Google Gemini API (`@google/genai`) using multimodal `gemini-3.8-flash`, with Groq Whisper and `openai/gpt-oss-120b` as a fallback for transcription and structured analysis.
 - **Export Engine:** Client-side document generation using `docx` for Microsoft Word and `jspdf` for PDF.
 - **Authentication & Persistence:** Secure token authentication with password hashing (PBKDF2/SHA-512) and persistent database storage for registered users.
 - **Guest Access:** Zero-friction guest mode with ephemeral local sessions and persistent warning prompts.
@@ -184,6 +184,7 @@ npm install
 
 # 2. Set your environment variables
 cp .env.example .env
+# GEMINI_API_KEY is required; GROQ_API_KEY is optional and enables the fallback provider.
 
 # 3. Start development server
 npm run dev
