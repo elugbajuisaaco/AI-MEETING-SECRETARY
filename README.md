@@ -1,194 +1,169 @@
 # AI Meeting Secretary
 
-An intelligent, full-stack web application that records live audio directly from the browser, transcribes it using Google's multimodal **Gemini API** (`@google/genai`) with **Groq** as a fallback, generates speaker-labeled dialogue, executive summaries, key agenda topics, and concrete action items, and allows editing and one-click export to **Microsoft Word (.docx)** and **PDF**.
+AI Meeting Secretary turns meeting recordings into searchable transcripts, summaries, decisions, and action items. Record a meeting in the browser or upload an audio/video file, then save it and transcribe it now or later.
 
----
+## Features
 
-## 1. Tech Stack & Architecture
+- Record audio or upload common audio and video formats.
+- Generate transcripts, summaries, topics, decisions, and action items with Gemini or Groq.
+- Save meetings to an account and retry transcription later.
+- Edit transcripts and action items, and export notes to Markdown, Word, or PDF.
+- Store recordings locally or in an S3-compatible service.
+- Verify email addresses and reset passwords through console, SMTP, or Resend email delivery.
 
-- **Frontend:** React 19, TypeScript, Tailwind CSS, Lucide Icons, Motion.
-- **Audio Capture & Analysis:** HTML5 `MediaRecorder` API + Web Audio API (`AnalyserNode`) for live waveform visualization.
-- **Backend:** Node.js, Express, `tsx` TypeScript runtime, with Vite middleware integration in development and static asset serving in production.
-- **AI Engine:** Google Gemini API (`@google/genai`) using multimodal `gemini-3.8-flash`, with Groq Whisper and `openai/gpt-oss-120b` as a fallback for transcription and structured analysis.
-- **Export Engine:** Client-side document generation using `docx` for Microsoft Word and `jspdf` for PDF.
-- **Authentication & Persistence:** Secure token authentication with password hashing (PBKDF2/SHA-512) and persistent database storage for registered users.
-- **Guest Access:** Zero-friction guest mode with ephemeral local sessions and persistent warning prompts.
-
----
-
-## 2. Project Directory Structure
+## Project layout
 
 ```text
-├── .env.example              # Environment variables template
-├── index.html                # HTML entry point with synchronized metadata & title
-├── metadata.json             # Applet capabilities & permissions
-├── package.json              # App dependencies & scripts (Express, React, Gemini SDK)
-├── tsconfig.json             # TypeScript compiler configuration
-├── vite.config.ts            # Vite build and Tailwind configuration
-├── server.ts                 # Full-stack Express server + Gemini AI endpoints
-├── data/                     # Persistent database storage
-│   ├── users.json            # Encrypted user accounts & salt hashes
-│   └── meetings.json         # Past meeting transcripts, action items & summaries
-└── src/
-    ├── main.tsx              # React DOM mounting
-    ├── index.css             # Tailwind CSS imports
-    ├── App.tsx               # Main application container & view orchestration
-    ├── types/
-    │   └── index.ts          # TypeScript interfaces (Meeting, User, Transcript, etc.)
-    ├── services/
-    │   └── api.ts            # Client-side API service connecting to Express backend
-    ├── utils/
-    │   └── exportDocs.ts     # Word (.docx), PDF, and Markdown export generators
-    └── components/
-        ├── Header.tsx        # Top navigation, brand logo, guest alert & user profile
-        ├── AuthModal.tsx     # Sign In, Sign Up, and 1-click Demo Profiles
-        ├── Recorder.tsx      # MediaRecorder audio capture, live waveform & file upload
-        ├── TranscriptEditor.tsx # Interactive editor, action item checklist & exports
-        └── Dashboard.tsx     # Saved meetings list, search filter, and statistics
+backend/             FastAPI API, database models, Alembic migrations, and provider integrations
+  .env.example       Backend configuration template
+  tests/             Backend provider-chain tests
+frontend/            Next.js web application
+.gitignore           Excludes local secrets, databases, recordings, and build artifacts
+README.md             Setup and configuration guide
 ```
 
----
+## Run locally
 
-## 3. Database Schema
+### Requirements
 
-### SQL (PostgreSQL / Relational)
-```sql
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    salt VARCHAR(64) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+- Python 3.10 or newer
+- Node.js 20.9 or newer and npm
+- FFmpeg and FFprobe on the backend machine for media validation and audio extraction
+- An API key for at least one transcription provider: [Google AI Studio](https://aistudio.google.com/app/apikey) or [Groq](https://console.groq.com/keys)
 
-CREATE TABLE meetings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    duration_seconds INTEGER NOT NULL DEFAULT 0,
-    category VARCHAR(50) DEFAULT 'General',
-    summary TEXT,
-    topics JSONB DEFAULT '[]'::jsonb,
-    decisions JSONB DEFAULT '[]'::jsonb,
-    action_items JSONB DEFAULT '[]'::jsonb,
-    transcript_segments JSONB DEFAULT '[]'::jsonb,
-    raw_transcript TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+### Setup
 
-CREATE INDEX idx_meetings_user_id ON meetings(user_id);
-CREATE INDEX idx_meetings_date ON meetings(date DESC);
+1. Clone the repository and open a terminal in its root directory.
+2. Create a Python virtual environment and install the backend packages:
+
+   ```powershell
+   py -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   python -m pip install -r backend/requirements.txt
+   ```
+
+   On macOS or Linux, use `python3 -m venv .venv` and activate it with `source .venv/bin/activate`.
+
+3. Create the backend environment file:
+
+   ```powershell
+   Copy-Item backend/.env.example backend/.env
+   ```
+
+   Edit `backend/.env`. Set a unique `JWT_SECRET` and at least one provider key (`GEMINI_API_KEY` or `GROQ_API_KEY`). Keep this file private; never commit it.
+
+4. Apply the database migrations from `backend/`:
+
+   ```powershell
+   cd backend
+   python -m alembic upgrade head
+   cd ..
+   ```
+
+5. Start the backend in one terminal from the project root:
+
+   ```powershell
+   python -m uvicorn backend.main:app --reload --port 8000
+   ```
+
+   Alternatively, from `backend/`, run `python -m uvicorn main:app --reload --port 8000`.
+
+6. In a second terminal, start the frontend:
+
+   ```powershell
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+7. Open `http://localhost:3000`. The API health route is `http://localhost:8000/api/health`; interactive API docs are at `http://localhost:8000/docs`.
+
+The local SQLite database and retained recordings are stored under `backend/data/`. The `.gitignore` excludes local environment files, databases, recordings, dependency folders, and build output.
+
+## Database and migrations
+
+The backend uses SQLAlchemy 2.0 and Alembic. `DATABASE_URL` selects the database: local development defaults to SQLite (`sqlite:///data/meetings.sqlite3` in `backend/.env.example`); production can use PostgreSQL, for example `postgresql+psycopg://USER:PASSWORD@HOST:5432/DBNAME`. Run migrations from `backend/` with `python -m alembic upgrade head` after installing dependencies and whenever a new migration is added.
+
+To copy an existing local SQLite database into the configured target, first set `DATABASE_URL` to the target database, run `python -m alembic upgrade head` from `backend/`, then from the project root run:
+
+```powershell
+python -m backend.scripts.migrate_sqlite_to_url
 ```
 
-### NoSQL (Firebase Firestore / MongoDB)
-```json
-// Collection: users/{userId}
-{
-  "id": "usr-101",
-  "email": "sarah.product@company.com",
-  "name": "Sarah Jenkins",
-  "createdAt": "2026-10-05T08:00:00Z"
-}
+The script defaults to `backend/data/meetings.sqlite3`, preserves existing IDs and audio paths, and skips rows already present in the target. Use `--source` to select another SQLite file. Back up both databases before copying.
 
-// Collection: meetings/{meetingId}
-{
-  "id": "persisted-meeting-1",
-  "userId": "usr-101",
-  "title": "Q4 Product Roadmap & AI Secretary Launch",
-  "date": "2026-10-05T08:15:00Z",
-  "durationSeconds": 1420,
-  "category": "Planning",
-  "summary": "Executive overview of sprint milestones...",
-  "topics": ["Live browser audio", "Word/PDF export"],
-  "decisions": ["Approved launch on Oct 15"],
-  "actionItems": [
-    { "id": "act-1", "task": "Load test audio uploads", "assignee": "Alex", "completed": true }
-  ],
-  "transcriptSegments": [
-    { "speaker": "Sarah Jenkins", "timestamp": "00:00", "text": "Good morning team..." }
-  ]
-}
+## Audio storage
+
+`STORAGE_PROVIDER=local` stores audio under `backend/data/audio/`. Set `STORAGE_PROVIDER=s3` for AWS S3, Cloudflare R2, or Supabase Storage's S3-compatible endpoint. Configure `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY`; set `S3_ENDPOINT_URL` for R2 or Supabase (for Supabase, use the project's S3 endpoint). The API issues short-lived signed playback and download URLs. Local storage uses expiring signed API URLs; S3-compatible storage uses provider presigned URLs. `AUDIO_SIGNED_URL_TTL` controls link lifetime in seconds.
+
+After applying migrations, set the storage provider and credentials in `backend/.env`, then migrate existing local audio from the SQLite rows:
+
+```powershell
+python -m backend.scripts.migrate_storage
 ```
 
----
+Run it from the project root. The script updates each meeting to use a provider-neutral storage key and leaves source files in place by default. Add `--delete-source` only after checking the destination; it deletes a source file after its copy is stored and the database row is updated. Retention cleanup, transcription, and meeting deletion work through the configured provider.
 
-## 4. API Endpoints Specification
+## Providers and configuration
 
-| Method | Endpoint | Description | Auth Required |
-|---|---|---|---|
-| `POST` | `/api/auth/register` | Register new user account | No |
-| `POST` | `/api/auth/login` | Sign in with email and password | No |
-| `GET` | `/api/auth/me` | Fetch active user profile | Bearer Token |
-| `POST` | `/api/transcribe` | Process base64 audio and generate structured transcript | No (supports Guest) |
-| `POST` | `/api/ai/refine` | Polish notes or create executive email follow-up | No (supports Guest) |
-| `GET` | `/api/meetings` | List saved meetings with search and category filters | Bearer Token |
-| `POST` | `/api/meetings` | Save new meeting to dashboard | Bearer Token |
-| `PUT` | `/api/meetings/:id` | Update meeting transcript, title, or action items | Bearer Token |
-| `DELETE` | `/api/meetings/:id` | Permanently delete meeting | Bearer Token |
-| `GET` | `/api/health` | Service health status and Gemini API key check | No |
-| `GET` | `/api/docs` | OpenAPI 3.0 API specification | No |
+Set `GEMINI_API_KEY` or `GROQ_API_KEY` in `backend/.env`. The chain uses `PROVIDER_ORDER` (default `gemini,groq`) and only falls back after transient provider errors. Groq transcription uses `GROQ_WHISPER_MODEL` and structured analysis uses `GROQ_MODEL`.
 
----
+Install FFmpeg and FFprobe on the backend machine. Uploads are validated by their file contents and probed for an audio stream and actual duration; submitted MIME types and duration fields are not trusted. Video audio is extracted before either AI provider receives it. Groq audio above its upload limit is split into smaller chunks.
 
-## 5. Security & Privacy (GDPR & CCPA Compliant)
+| Variable | Default | Purpose |
+|---|---|---|
+| `JWT_SECRET` | — | Session signing key; required in production. |
+| `PROVIDER_ORDER` | `gemini,groq` | Provider order. |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Gemini model. |
+| `GROQ_WHISPER_MODEL` | `whisper-large-v3-turbo` | Groq audio transcription model. |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq meeting analysis model. |
+| `MONTHLY_TRANSCRIPTION_QUOTA` | `60` | Monthly transcriptions per user. |
+| `TRANSCRIPTION_JOB_TIMEOUT_MINUTES` | `30` | On startup, processing meetings older than this are marked failed so they can be retried. |
+| `AUDIO_RETENTION_DAYS` | `30` | Days audio is retained; `0` removes audio after transcription. |
+| `STORAGE_PROVIDER` | `local` | `local`, `s3`, `r2`, or `supabase`. |
+| `LOCAL_STORAGE_DIR` | `data` | Local storage root relative to `backend/`; media keys use the `audio/` prefix. |
+| `S3_ENDPOINT_URL` | — | Optional S3-compatible service endpoint. |
+| `S3_BUCKET` | — | Required for an S3-compatible provider. |
+| `S3_REGION` | `auto` | S3 region or provider-specific region. |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | — | S3-compatible service credentials. |
+| `AUDIO_SIGNED_URL_TTL` | `3600` | Lifetime of generated audio links, in seconds. |
+| `MAX_AUDIO_BYTES` | `20971520` | Maximum uploaded audio or video size. |
+| `MAX_AUDIO_DURATION_SECONDS` | `7200` | Maximum source audio/video duration; enforced by FFprobe on the backend. |
+| `DATABASE_URL` | `sqlite:///data/meetings.sqlite3` | SQLAlchemy database URL. SQLite paths are relative to `backend/`; PostgreSQL uses `postgresql+psycopg://...`. |
+| `CORS_ORIGINS` | `http://localhost:3000` | Allowed browser origins. |
+| `APP_BASE_URL` | `http://localhost:3000` | Frontend origin used in account email links. |
+| `EMAIL_PROVIDER` | `console` | `console` for local links, or `smtp` / `resend` for delivery. Production requires a real sender. |
+| `EMAIL_FROM` | — | Verified sender address for SMTP or Resend. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS` | — / `587` / `true` | SMTP server settings. |
+| `SMTP_USERNAME`, `SMTP_PASSWORD` | — | Optional SMTP authentication credentials. |
+| `RESEND_API_KEY` | — | API key when `EMAIL_PROVIDER=resend`. |
 
-1. **Client-Side Ephemeral Processing for Guests:** Guest recordings are kept in memory and never persisted to disks or databases without user consent.
-2. **Audio File Security:** Audio payloads sent to the backend are processed in-memory directly with Google's secure AI API and not permanently stored on disk.
-3. **Data Encryption at Rest:** Passwords are encrypted using salted PBKDF2 with SHA-512.
-4. **Permanent Right to Erasure:** Deleting a meeting deletes all transcript segments, summaries, and metadata immediately from the storage layer.
+New registrations require email verification. In local development, the console email provider prints verification and reset links in the backend terminal. Password reset links expire after one hour; verification links expire after 24 hours. Apply the latest migration before starting the backend.
 
----
+For SMTP, set `EMAIL_PROVIDER=smtp`, `EMAIL_FROM`, `SMTP_HOST`, and the appropriate SMTP credentials. For Resend, set `EMAIL_PROVIDER=resend`, `EMAIL_FROM`, and `RESEND_API_KEY`. Keep these values in `backend/.env` or your production secret store; they are used only by the backend.
 
-## 6. Docker Containerization
+The auth routes are `POST /api/auth/verify?token=...`, `POST /api/auth/verification/resend`, `POST /api/auth/password-reset`, and `POST /api/auth/password-reset/confirm`. The local limiter keeps separate per-IP counters in each backend process; use a shared rate-limit store if deploying multiple API workers.
 
-To run this application in any environment using Docker:
+## API overview
 
-```dockerfile
-# Multi-stage production Dockerfile
-FROM node:22-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
+- `POST /api/transcribe` transcribes audio immediately.
+- `POST /api/meetings` saves uploaded audio and meeting details; set `transcribe_now` to start transcription immediately.
+- `POST /api/meetings/{id}/transcribe` starts or retries transcription for an owned meeting.
+- Authentication, meeting management, and AI refinement endpoints are available under `/api/`.
 
-FROM node:22-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
-ENV PORT=3000
-COPY package*.json ./
-RUN npm install --omit=dev
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server.ts ./server.ts
-COPY --from=builder /app/data ./data
-EXPOSE 3000
-CMD ["npx", "tsx", "server.ts"]
+The frontend proxy defaults to `http://127.0.0.1:8000`. Set `API_ORIGIN` in `frontend/.env.local` when the backend runs elsewhere.
+
+## Checks
+
+Run backend syntax and provider-chain checks from the project root:
+
+```powershell
+python -m py_compile backend/main.py
+python -m unittest discover -s backend/tests -v
 ```
 
-Build and run:
-```bash
-docker build -t ai-meeting-secretary .
-docker run -p 3000:3000 -e GEMINI_API_KEY="YOUR_KEY" ai-meeting-secretary
-```
+Build the frontend from `frontend/` with `npm run build`.
 
----
+## Legacy data
 
-## 7. Running Locally
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Set your environment variables
-cp .env.example .env
-# GEMINI_API_KEY is required; GROQ_API_KEY is optional and enables the fallback provider.
-
-# 3. Start development server
-npm run dev
-
-# 4. Open in browser
-http://localhost:3000
-```
+The unused JSON data files from the earlier demo are preserved in `backend/data/archive/`. They are not imported automatically. Review or export them before deleting the archive.
